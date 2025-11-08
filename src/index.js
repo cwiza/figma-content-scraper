@@ -28,7 +28,9 @@ async function main() {
     const analyzer = new ContentAnalyzer(
       process.env.AZURE_OPENAI_ENDPOINT,
       process.env.AZURE_OPENAI_API_KEY,
-      process.env.AZURE_OPENAI_DEPLOYMENT
+      process.env.AZURE_OPENAI_DEPLOYMENT,
+      process.env.AZURE_OPENAI_API_VERSION,
+      process.env.AI_SYSTEM_PROMPT
     );
     
     const analyzedContent = await analyzer.analyzeContent(content);

@@ -1,9 +1,14 @@
-const { OpenAIClient, AzureKeyCredential } = require('@azure/openai');
+const { AzureOpenAI } = require('openai');
 
 class ContentAnalyzer {
-  constructor(endpoint, apiKey, deployment) {
-    this.client = new OpenAIClient(endpoint, new AzureKeyCredential(apiKey));
+  constructor(endpoint, apiKey, deployment, apiVersion, systemPrompt = null) {
+    this.client = new AzureOpenAI({
+      endpoint,
+      apiKey,
+      apiVersion: apiVersion || '2024-02-15-preview'
+    });
     this.deployment = deployment;
+    this.systemPrompt = systemPrompt;
   }
 
   async analyzeSingleItem(item) {
@@ -25,14 +30,25 @@ Respond in JSON format:
   "patterns": ["..."]
 }`;
 
-    try {
-      const response = await this.client.getChatCompletions(
-        this.deployment,
-        [{ role: 'user', content: prompt }],
-        { temperature: 0.3, maxTokens: 500 }
-      );
+    const messages = this.systemPrompt 
+      ? [
+          { role: 'system', content: this.systemPrompt },
+          { role: 'user', content: prompt }
+        ]
+      : [{ role: 'user', content: prompt }];
 
-      return JSON.parse(response.choices[0].message.content);
+    try {
+      const response = await this.client.chat.completions.create({
+        model: this.deployment,
+        messages,
+        temperature: 0.3,
+        max_tokens: 500
+      });
+
+      let content = response.choices[0].message.content;
+      // Remove markdown code blocks if present
+      content = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+      return JSON.parse(content);
     } catch (error) {
       console.error(`Error analyzing item: ${error.message}`);
       return null;
@@ -87,14 +103,25 @@ Provide actionable insights in JSON:
   "recommendations": ["..."]
 }`;
 
-    try {
-      const response = await this.client.getChatCompletions(
-        this.deployment,
-        [{ role: 'user', content: prompt }],
-        { temperature: 0.5, maxTokens: 1000 }
-      );
+    const messages = this.systemPrompt 
+      ? [
+          { role: 'system', content: this.systemPrompt },
+          { role: 'user', content: prompt }
+        ]
+      : [{ role: 'user', content: prompt }];
 
-      return JSON.parse(response.choices[0].message.content);
+    try {
+      const response = await this.client.chat.completions.create({
+        model: this.deployment,
+        messages,
+        temperature: 0.5,
+        max_tokens: 1000
+      });
+
+      let content = response.choices[0].message.content;
+      // Remove markdown code blocks if present
+      content = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+      return JSON.parse(content);
     } catch (error) {
       console.error(`Error finding patterns: ${error.message}`);
       return null;

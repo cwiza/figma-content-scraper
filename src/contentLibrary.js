@@ -11,7 +11,8 @@ class ContentLibrary {
   }
 
   async generateCSV(analyzedContent, fileName) {
-    const csvPath = path.join(this.outputDir, `${fileName}_content_library.csv`);
+    const timestamp = new Date().toISOString().replace(/:/g, '-').split('.')[0];
+    const csvPath = path.join(this.outputDir, `${fileName}_${timestamp}_content_library.csv`);
     
     const csvWriter = createCsvWriter({
       path: csvPath,
@@ -44,7 +45,8 @@ class ContentLibrary {
   }
 
   async generateJSON(analyzedContent, patterns, stats, fileName) {
-    const jsonPath = path.join(this.outputDir, `${fileName}_full_report.json`);
+    const timestamp = new Date().toISOString().replace(/:/g, '-').split('.')[0];
+    const jsonPath = path.join(this.outputDir, `${fileName}_${timestamp}_full_report.json`);
     
     const report = {
       metadata: {

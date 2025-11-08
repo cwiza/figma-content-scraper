@@ -1,153 +1,294 @@
 # Figma Content Scraper
 
-An AI-powered tool that scrapes content from Figma files, analyzes it with Azure OpenAI, and generates organized content libraries.
+An AI-powered tool that extracts text content from Figma files and analyzes it using Azure OpenAI to provide insights on UX writing, tone consistency, and content patterns.
 
-## Features
+## What It Does
 
-- 🔍 **Figma Scraping**: Extracts text content, components, and metadata from Figma files
-- 🤖 **AI Analysis**: Uses Azure OpenAI to categorize and analyze UI content
-- 📊 **Content Library Generation**: Creates CSV and JSON reports with analyzed content
-- 🎯 **Pattern Detection**: Identifies common phrases, tone issues, and naming conventions
+This tool:
+1. **Extracts** all text strings from a Figma file via the Figma API
+2. **Analyzes** each string with AI to determine:
+   - Category (button, label, placeholder, heading, etc.)
+   - Tone (formal, casual, friendly)
+   - Purpose (what the text is meant to do)
+   - UX patterns (design patterns used)
+3. **Generates** reports in CSV and JSON format with:
+   - Individual analysis for each text string
+   - Corpus-level pattern analysis
+   - UX recommendations
+   - Statistics and insights
+
+## Prerequisites
+
+- **Node.js** 18+ installed
+- **Figma account** with API access
+- **Azure OpenAI** deployment (GPT-4 or GPT-4o recommended)
 
 ## Setup
 
-### Prerequisites
+### 1. Clone and Install
 
-- Node.js 18+ 
-- Figma Access Token
-- Azure OpenAI credentials
+```bash
+git clone <your-repo-url>
+cd figma-content-scraper
+npm install
+```
 
-### Local Development
+### 2. Get Your Figma Access Token
 
-1. **Clone and install dependencies**:
-   ```bash
-   git clone <your-repo>
-   cd figma-content-scraper
-   npm install
-   ```
+1. Log in to [Figma](https://figma.com)
+2. Go to **Settings** → **Account** → **Personal Access Tokens**
+3. Click **Generate new token**
+4. Copy the token (starts with `figd_...`)
 
-2. **Configure environment variables**:
-   
-   Edit `.env` file with your credentials:
-   ```env
-   FIGMA_ACCESS_TOKEN=your_figma_token
-   FIGMA_FILE_KEY=your_figma_file_key
-   AZURE_OPENAI_ENDPOINT=https://your-resource.openai.azure.com/
-   AZURE_OPENAI_API_KEY=your_api_key
-   AZURE_OPENAI_DEPLOYMENT=content-analyzer
-   AZURE_OPENAI_API_VERSION=2024-02-15-preview
-   ```
+### 3. Get Your Azure OpenAI Credentials
 
-3. **Run the scraper**:
-   ```bash
-   # Use file key from .env
-   npm start
-   
-   # Or pass file key as argument
-   npm start YOUR_FIGMA_FILE_KEY
-   
-   # Development mode with auto-reload
-   npm run dev
-   ```
+1. Go to [Azure Portal](https://portal.azure.com)
+2. Navigate to your **Azure OpenAI resource**
+3. Go to **Keys and Endpoint**
+4. Copy:
+   - **Endpoint** (e.g., `https://your-resource.cognitiveservices.azure.com/`)
+   - **API Key**
+5. Note your **Deployment Name** (e.g., `gpt-4o`, `gpt-4`)
 
-## Azure Deployment
+### 4. Configure Environment Variables
 
-### Infrastructure Setup (Already Completed)
+Create a `.env` file in the project root:
 
-The following Azure resources have been created:
-- Resource Group: `figma-scraper-rg`
-- App Service Plan: `figma-plan` (B1 tier)
-- Web App: `figma-content-scraper-app`
-- URL: https://figma-content-scraper-app.azurewebsites.net
+```bash
+# Figma API
+FIGMA_ACCESS_TOKEN=figd_YOUR_TOKEN_HERE
 
-### GitHub Actions Setup
+# Azure OpenAI
+AZURE_OPENAI_ENDPOINT=https://your-resource.cognitiveservices.azure.com/
+AZURE_OPENAI_API_KEY=your_api_key_here
+AZURE_OPENAI_DEPLOYMENT=gpt-4o
+AZURE_OPENAI_API_VERSION=2025-01-01-preview
 
-1. **Add Azure Publish Profile to GitHub Secrets**:
-   - Go to your GitHub repository
-   - Navigate to Settings → Secrets and variables → Actions
-   - Click "New repository secret"
-   - Name: `AZURE_WEBAPP_PUBLISH_PROFILE`
-   - Value: Copy the contents of `azure-publish-profile.xml`
-   - Click "Add secret"
+# Default Figma File (optional)
+FIGMA_FILE_KEY=your_default_file_key
 
-2. **Initialize Git and Push**:
-   ```bash
-   git init
-   git add .
-   git commit -m "Initial commit"
-   git branch -M main
-   git remote add origin <your-github-repo-url>
-   git push -u origin main
-   ```
+# AI Grounding Instructions (optional)
+AI_SYSTEM_PROMPT=You are analyzing UI content for a [Your Product] application. Focus on consistency with [Your Design System] principles.
+```
 
-3. **Automatic Deployment**:
-   - Every push to the `main` branch will trigger automatic deployment to Azure
-   - Monitor deployment status in the Actions tab
+### 5. Get Your Figma File Key
+
+From any Figma file URL:
+```
+https://figma.com/design/fb46HsIOMPb6yiiiFTbyGO/AI-testing
+                              ^^^^^^^^^^^^^^^^^^^^
+                              This is your file key
+```
+
+## Usage
+
+### Basic Usage
+
+Run with a specific Figma file:
+
+```bash
+npm start YOUR_FIGMA_FILE_KEY
+```
+
+Or use the default from `.env`:
+
+```bash
+npm start
+```
+
+### What Happens
+
+The scraper will:
+1. Fetch the Figma file structure
+2. Extract all text content (only nodes with actual text)
+3. Analyze each string with Azure OpenAI
+4. Generate timestamped output files in `output/`
+
+### Output Files
+
+Two files are created per run:
+
+**CSV Report** (`output/[FileName]_[Timestamp]_content_library.csv`):
+```csv
+ID,Name,Type,Path,Content,Category,Tone,Purpose
+I1:3418...,Label,TEXT,Document > Page 1 > ...,Search resources...,placeholder,friendly,To guide users in searching...
+```
+
+**JSON Report** (`output/[FileName]_[Timestamp]_full_report.json`):
+```json
+{
+  "metadata": { "fileName": "...", "totalItems": 104, ... },
+  "statistics": { "categoryBreakdown": {...}, "toneDistribution": {...} },
+  "patterns": { "commonPhrases": [...], "recommendations": [...] },
+  "content": [ ... all analyzed items ... ]
+}
+```
+
+## Customizing AI Analysis
+
+### Grounding Instructions
+
+Add custom instructions for the AI in `.env`:
+
+```bash
+# Brand voice guidelines
+AI_SYSTEM_PROMPT=Analyze content for Acme Corp. Our brand voice is friendly, helpful, and conversational. Avoid jargon.
+
+# Design system focus
+AI_SYSTEM_PROMPT=Reference Material Design 3 guidelines. Check for consistency with Google's UX writing style guide.
+
+# Accessibility focus
+AI_SYSTEM_PROMPT=Prioritize WCAG AA compliance. Flag any text that may be unclear for screen readers or non-technical users.
+
+# Multi-criteria
+AI_SYSTEM_PROMPT=Analyze for: 1) Microsoft Fluent Design consistency, 2) Accessibility (WCAG AA), 3) Localization readiness
+```
+
+### Rate Limiting
+
+The tool includes a 100ms delay between API calls. Adjust in `src/contentAnalyzer.js`:
+
+```javascript
+// Change this value (in milliseconds)
+await new Promise(resolve => setTimeout(resolve, 100));
+```
+
+## Analyzing Results
+
+### Search for Specific Terms
+
+```bash
+# Case-insensitive search in CSV
+grep -i "button" output/[filename].csv
+
+# Count occurrences
+grep -i "search" output/[filename].csv | wc -l
+```
+
+### Open in Spreadsheet
+
+Open the CSV file in Excel, Google Sheets, or Numbers to:
+- Sort by Category, Tone, or Purpose
+- Filter for specific patterns
+- Analyze tone consistency
+- Identify content gaps
+
+### Explore JSON for Patterns
+
+The JSON file includes:
+- `statistics` - Category and tone breakdown
+- `patterns.commonPhrases` - Recurring text patterns
+- `patterns.recommendations` - AI-generated UX suggestions
+- `patterns.toneIssues` - Inconsistencies detected
 
 ## Project Structure
 
 ```
 figma-content-scraper/
 ├── src/
-│   ├── index.js           # Main entry point
-│   ├── figmaScraper.js    # Figma API integration
-│   ├── contentAnalyzer.js # Azure OpenAI analysis
-│   └── contentLibrary.js  # Report generation
-├── output/                # Generated CSV and JSON files
-├── .github/
-│   └── workflows/
-│       └── deploy.yml     # GitHub Actions deployment
-├── .env                   # Environment variables (not committed)
+│   ├── figmaScraper.js      # Fetches and extracts text from Figma
+│   ├── contentAnalyzer.js   # AI analysis with Azure OpenAI
+│   ├── contentLibrary.js    # Generates CSV/JSON reports
+│   └── index.js             # Main orchestrator
+├── output/                   # Generated reports (timestamped)
+├── .env                      # Configuration (not committed)
 ├── .gitignore
-└── package.json
+├── package.json
+└── README.md
 ```
-
-## Output Files
-
-The scraper generates two types of files in the `output/` directory:
-
-1. **CSV File**: `{fileName}_content_library.csv`
-   - Spreadsheet with all content items
-   - Includes categories, tone, and purpose analysis
-
-2. **JSON File**: `{fileName}_full_report.json`
-   - Complete report with metadata
-   - Statistics and pattern analysis
-   - Detailed content structure
-
-## Usage Example
-
-```bash
-# Run with Figma file key
-npm start fb46HsIOMPb6yiiiFTbyGO
-
-# Output:
-# 🚀 Starting Figma Content Scraper Agent
-# 🔍 Fetching Figma file...
-# 📄 Parsing content...
-# ✅ Scraped "My Design System"
-#    Found 42 content items
-# 🤖 Analyzing content with AI...
-#    Progress: 40/42
-# ✅ CSV saved to: output/My_Design_System_content_library.csv
-# ✅ Full report saved to: output/My_Design_System_full_report.json
-# ✨ Content scraping complete!
-```
-
-## Security Notes
-
-- Never commit `.env` file or `azure-publish-profile.xml` to version control
-- Store sensitive credentials in GitHub Secrets for CI/CD
-- Azure OpenAI API keys should be rotated regularly
 
 ## Troubleshooting
 
-**API Rate Limiting**: The scraper includes a 100ms delay between API calls. Adjust in `contentAnalyzer.js` if needed.
+### "Error: 401 Unauthorized"
 
-**Authentication Errors**: Verify your Figma token has access to the file and Azure OpenAI credentials are correct.
+- Check your `FIGMA_ACCESS_TOKEN` is correct
+- Ensure the token has access to the file (check sharing settings)
 
-**Memory Issues**: For very large Figma files, consider processing in batches.
+### "Error: Azure OpenAI authentication failed"
+
+- Verify your `AZURE_OPENAI_ENDPOINT` uses the correct format:
+  - ✅ `https://resource.cognitiveservices.azure.com/`
+  - ❌ `https://resource.openai.azure.com/` (AI Foundry endpoint - different auth)
+- Confirm `AZURE_OPENAI_API_KEY` is correct
+- Check `AZURE_OPENAI_DEPLOYMENT` matches your deployment name exactly
+
+### "No content found"
+
+- The file might not contain any text nodes
+- Try a different Figma file with visible text content
+
+### Rate Limiting Errors
+
+- Increase the delay in `contentAnalyzer.js`
+- Check your Azure OpenAI quota and usage
+
+## Advanced Usage
+
+### Multiple File Analysis
+
+Create a script to process multiple files:
+
+```bash
+#!/bin/bash
+files=("file_key_1" "file_key_2" "file_key_3")
+for file in "${files[@]}"; do
+  npm start "$file"
+done
+```
+
+### CI/CD Integration
+
+Run as part of your design-to-code pipeline:
+
+```yaml
+# .github/workflows/analyze-figma.yml
+name: Analyze Figma Content
+on:
+  schedule:
+    - cron: '0 9 * * 1'  # Every Monday at 9am
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+      - run: npm install
+      - run: npm start
+        env:
+          FIGMA_ACCESS_TOKEN: ${{ secrets.FIGMA_TOKEN }}
+          AZURE_OPENAI_API_KEY: ${{ secrets.AZURE_KEY }}
+```
+
+## Features
+
+✅ Extracts text-only content (no empty components)  
+✅ AI-powered categorization and analysis  
+✅ Timestamped outputs (never overwrites previous runs)  
+✅ Custom grounding instructions for domain-specific analysis  
+✅ CSV export for spreadsheet analysis  
+✅ JSON export with pattern detection  
+✅ Rate limiting for API protection  
+✅ Progress tracking during analysis  
+
+## Cost Considerations
+
+- **Figma API**: Free for personal use
+- **Azure OpenAI**: Charged per token
+  - ~500-1000 tokens per text string analyzed
+  - 104 strings ≈ 50K-100K tokens ≈ $0.50-$1.00 (GPT-4o pricing)
+
+## Contributing
+
+Issues and pull requests welcome! This tool is particularly useful for:
+- UX writers auditing content
+- Design teams ensuring consistency
+- Accessibility teams checking clarity
+- Localization teams preparing for translation
 
 ## License
 
-ISC
+MIT
+
+---
+
+**Built with:** Node.js, Figma API, Azure OpenAI, and ☕

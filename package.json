@@ -12,10 +12,11 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
-    "@azure/openai": "^2.0.0",
+    "@azure/core-auth": "^1.10.1",
     "axios": "^1.13.2",
     "csv-writer": "^1.6.0",
-    "dotenv": "^17.2.3"
+    "dotenv": "^17.2.3",
+    "openai": "^6.8.1"
   },
   "devDependencies": {
     "nodemon": "^3.1.10"

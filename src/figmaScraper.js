@@ -28,33 +28,20 @@ class FigmaScraper {
   }
 
   extractContent(node, path = [], allContent = []) {
-    const contentItem = {
-      id: node.id,
-      name: node.name,
-      type: node.type,
-      path: path.join(' > '),
-      content: []
-    };
-
     // Extract text content
     if (node.characters) {
-      contentItem.content.push({
-        type: 'text',
-        value: node.characters,
-        style: node.style
-      });
-    }
-
-    // Extract component info
-    if (node.type === 'COMPONENT' || node.type === 'INSTANCE') {
-      contentItem.componentInfo = {
-        description: node.description || '',
-        componentName: node.name
+      const contentItem = {
+        id: node.id,
+        name: node.name,
+        type: node.type,
+        path: path.join(' > '),
+        content: [{
+          type: 'text',
+          value: node.characters,
+          style: node.style
+        }]
       };
-    }
-
-    // Add to collection if has content
-    if (contentItem.content.length > 0 || contentItem.componentInfo) {
+      
       allContent.push(contentItem);
     }
 
