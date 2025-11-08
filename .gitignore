@@ -5,3 +5,10 @@ output/*.json
 *.log
 .DS_Store
 azure-publish-profile.xml
+
+# Video files
+*.mov
+*.mp4
+*.avi
+*.mkv
+demovideos/
