@@ -6,10 +6,10 @@ class ColorCodedExcel {
       critical: 'FFFF6B6B',      // Red - honorifics, critical issues
       placeholder: 'FFFFD93D',   // Yellow - lorem ipsum, placeholders
       inconsistency: 'FFFF9F40',  // Orange - tone/capitalization issues
-      longText: 'FF6BCF7F',      // Blue - text too long
+      longText: 'FF6BA3E8',      // Blue - text too long
       spelling: 'FFC77DFF',      // Purple - spelling errors
       needsReview: 'FFE0E0E0',   // Gray - needs human review
-      approved: 'FF95E1D3'       // Green - good content
+      approved: 'FF95E1D3'       // Green - good content (not currently used)
     };
   }
 
