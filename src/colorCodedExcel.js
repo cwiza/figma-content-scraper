@@ -19,6 +19,9 @@ class ColorCodedExcel {
 
     const workbook = new ExcelJS.Workbook();
     
+    // First pass: Detect plural inconsistencies across all content
+    this.detectPluralInconsistencies(analyzedContent);
+    
     // Prepare data with issues detected
     const analyzedData = analyzedContent.map(item => {
       const contentText = this.extractContentText(item);
@@ -179,6 +182,60 @@ class ColorCodedExcel {
     return item.content || '';
   }
 
+  detectPluralInconsistencies(analyzedContent) {
+    // Build a map of words and their singular/plural forms
+    const wordMap = new Map();
+    
+    analyzedContent.forEach(item => {
+      const contentText = this.extractContentText(item);
+      const words = contentText.toLowerCase().match(/\b[a-z]+\b/g) || [];
+      
+      words.forEach(word => {
+        if (!wordMap.has(word)) {
+          wordMap.set(word, []);
+        }
+        wordMap.get(word).push(item);
+      });
+    });
+
+    // Check for common plural inconsistencies
+    const pluralPairs = [
+      ['app', 'apps'],
+      ['task', 'tasks'],
+      ['plan', 'plans'],
+      ['step', 'steps'],
+      ['item', 'items'],
+      ['file', 'files'],
+      ['page', 'pages'],
+      ['user', 'users'],
+      ['button', 'buttons'],
+      ['menu', 'menus'],
+      ['option', 'options']
+    ];
+
+    pluralPairs.forEach(([singular, plural]) => {
+      const hasSingular = wordMap.has(singular);
+      const hasPlural = wordMap.has(plural);
+      
+      // If both forms exist, flag items with the less common form
+      if (hasSingular && hasPlural) {
+        const singularItems = wordMap.get(singular);
+        const pluralItems = wordMap.get(plural);
+        
+        // Flag the less common form
+        if (singularItems.length < pluralItems.length) {
+          singularItems.forEach(item => {
+            item._pluralInconsistency = `"${singular}" vs "${plural}" (use plural)`;
+          });
+        } else if (pluralItems.length < singularItems.length) {
+          pluralItems.forEach(item => {
+            item._pluralInconsistency = `"${plural}" vs "${singular}" (use singular)`;
+          });
+        }
+      }
+    });
+  }
+
   detectIssues(item, contentText) {
     const issues = [];
     const text = contentText.toLowerCase();
@@ -198,14 +255,20 @@ class ColorCodedExcel {
       issues.push('Placeholder text');
     }
 
-    // Check button text length
-    if (item.analysis?.category === 'button' && contentText.split(' ').length > 3) {
-      issues.push('Button text too long (>3 words)');
+    // Check button/link/navigation text length (expanded from just buttons)
+    const actionableCategories = ['button', 'navigation', 'link', 'action'];
+    if (actionableCategories.includes(item.analysis?.category) && contentText.split(' ').length > 3) {
+      issues.push('Actionable text too long (>3 words)');
     }
 
     // Check for inconsistent capitalization
     if (this.hasInconsistentCapitalization(contentText)) {
       issues.push('Inconsistent capitalization');
+    }
+
+    // Check for plural inconsistencies across corpus (this will be set externally)
+    if (item._pluralInconsistency) {
+      issues.push(`Plural inconsistency: "${item._pluralInconsistency}"`);
     }
 
     // Check for spelling (basic check)
