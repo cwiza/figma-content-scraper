@@ -2,6 +2,7 @@ require('dotenv').config();
 const FigmaScraper = require('./figmaScraper');
 const ContentAnalyzer = require('./contentAnalyzer');
 const ContentLibrary = require('./contentLibrary');
+const ColorCodedExcel = require('./colorCodedExcel');
 
 async function main() {
   // Get Figma file key from command line or use default
@@ -40,6 +41,11 @@ async function main() {
     const library = new ContentLibrary();
     await library.generateCSV(analyzedContent, fileName);
     await library.generateJSON(analyzedContent, patterns, stats, fileName);
+    
+    // Step 4: Generate Color-Coded Excel
+    const excelGenerator = new ColorCodedExcel();
+    await excelGenerator.generateColorCodedExcel(analyzedContent, fileName);
+    
     library.generateSummary(stats, patterns);
 
     console.log('\n✨ Content scraping complete!');
