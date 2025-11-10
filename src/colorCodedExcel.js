@@ -18,9 +18,96 @@ class ColorCodedExcel {
     const outputPath = `output/${fileName}_${timestamp}_color_coded.xlsx`;
 
     const workbook = new ExcelJS.Workbook();
-    const worksheet = workbook.addWorksheet('Content Analysis');
+    
+    // Prepare data with issues detected
+    const analyzedData = analyzedContent.map(item => {
+      const contentText = this.extractContentText(item);
+      const issues = this.detectIssues(item, contentText);
+      const severity = this.determineSeverity(issues);
+      const color = this.getColorForSeverity(severity);
+      
+      return {
+        item,
+        contentText,
+        issues,
+        severity,
+        color,
+        hasIssues: issues.length > 0
+      };
+    });
 
-    // Define columns
+    // Sheet 1: Issues Summary (only items with problems)
+    this.createIssuesSheet(workbook, analyzedData.filter(d => d.hasIssues));
+    
+    // Sheet 2: Full Content (all items)
+    this.createFullContentSheet(workbook, analyzedData);
+    
+    // Sheet 3: Color Legend
+    this.addLegendSheet(workbook);
+
+    // Save file
+    await workbook.xlsx.writeFile(outputPath);
+    console.log(`✅ Color-coded Excel saved to: ${outputPath}`);
+    
+    const issueCount = analyzedData.filter(d => d.hasIssues).length;
+    console.log(`   📊 ${issueCount} items with issues, ${analyzedData.length - issueCount} items clean\n`);
+    
+    return outputPath;
+  }
+
+  createIssuesSheet(workbook, itemsWithIssues) {
+    const worksheet = workbook.addWorksheet('⚠️ Issues Summary');
+
+    // Simpler columns for issues view
+    worksheet.columns = [
+      { header: 'Severity', key: 'severity', width: 12 },
+      { header: 'Content', key: 'content', width: 50 },
+      { header: 'Issues', key: 'issues', width: 40 },
+      { header: 'Category', key: 'category', width: 15 },
+      { header: 'Location', key: 'path', width: 30 }
+    ];
+
+    // Style header row
+    this.styleHeaderRow(worksheet.getRow(1));
+
+    // Sort by severity (Critical > High > Medium > Low)
+    const severityOrder = { 'Critical': 1, 'High': 2, 'Medium': 3, 'Low': 4 };
+    const sortedItems = itemsWithIssues.sort((a, b) => {
+      return (severityOrder[a.severity] || 99) - (severityOrder[b.severity] || 99);
+    });
+
+    // Add data rows with color coding
+    sortedItems.forEach(data => {
+      const { item, contentText, issues, severity, color } = data;
+      
+      const row = worksheet.addRow({
+        severity: severity,
+        content: contentText,
+        issues: issues.join('; '),
+        category: item.analysis?.category || '',
+        path: item.path || item.name
+      });
+
+      // Apply background color to entire row
+      if (color) {
+        row.eachCell((cell) => {
+          cell.fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: color }
+          };
+        });
+      }
+
+      // Bold severity column
+      row.getCell('severity').font = { bold: true };
+    });
+  }
+
+  createFullContentSheet(workbook, analyzedData) {
+    const worksheet = workbook.addWorksheet('📋 Full Content');
+
+    // Full columns for complete analysis
     worksheet.columns = [
       { header: 'ID', key: 'id', width: 35 },
       { header: 'Name', key: 'name', width: 20 },
@@ -35,21 +122,12 @@ class ColorCodedExcel {
     ];
 
     // Style header row
-    worksheet.getRow(1).font = { bold: true };
-    worksheet.getRow(1).fill = {
-      type: 'pattern',
-      pattern: 'solid',
-      fgColor: { argb: 'FF4A90E2' }
-    };
-    worksheet.getRow(1).font = { color: { argb: 'FFFFFFFF' }, bold: true };
+    this.styleHeaderRow(worksheet.getRow(1));
 
     // Add data rows with color coding
-    analyzedContent.forEach(item => {
-      const contentText = this.extractContentText(item);
-      const issues = this.detectIssues(item, contentText);
-      const severity = this.determineSeverity(issues);
-      const color = this.getColorForSeverity(severity);
-
+    analyzedData.forEach(data => {
+      const { item, contentText, issues, severity, color } = data;
+      
       const row = worksheet.addRow({
         id: item.id,
         name: item.name,
@@ -79,15 +157,16 @@ class ColorCodedExcel {
         row.getCell('issues').font = { bold: true };
       }
     });
+  }
 
-    // Add legend sheet
-    this.addLegendSheet(workbook);
-
-    // Save file
-    await workbook.xlsx.writeFile(outputPath);
-    console.log(`✅ Color-coded Excel saved to: ${outputPath}`);
-    
-    return outputPath;
+  styleHeaderRow(headerRow) {
+    headerRow.font = { bold: true };
+    headerRow.fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FF4A90E2' }
+    };
+    headerRow.font = { color: { argb: 'FFFFFFFF' }, bold: true };
   }
 
   extractContentText(item) {
@@ -212,8 +291,8 @@ class ColorCodedExcel {
   }
 
   addLegendSheet(workbook) {
-    const legend = workbook.addWorksheet('Color Legend');
-    
+    const legend = workbook.addWorksheet('📖 Color Legend');
+
     legend.columns = [
       { header: 'Color', key: 'color', width: 15 },
       { header: 'Severity', key: 'severity', width: 15 },
@@ -253,13 +332,16 @@ class ColorCodedExcel {
     // Add usage instructions
     legend.addRow({});
     legend.addRow({ color: 'INSTRUCTIONS', meaning: 'How to use this spreadsheet:' }).font = { bold: true, size: 12 };
-    legend.addRow({ meaning: '1. Review all highlighted rows' });
-    legend.addRow({ meaning: '2. Start with red (Critical) issues first' });
-    legend.addRow({ meaning: '3. Fix spelling errors and remove honorifics' });
-    legend.addRow({ meaning: '4. Replace placeholder text with real content' });
-    legend.addRow({ meaning: '5. Ensure consistency across all content' });
-    legend.addRow({ meaning: '6. Use the "Issues" column to understand what needs fixing' });
+    legend.addRow({ meaning: '📄 Sheet 1: Issues Summary - Shows only content with problems, sorted by severity' });
+    legend.addRow({ meaning: '📄 Sheet 2: Full Content - Shows all scraped content with analysis' });
+    legend.addRow({ meaning: '📄 Sheet 3: This legend with color coding guide' });
+    legend.addRow({});
+    legend.addRow({ meaning: '✅ Workflow:' }).font = { bold: true };
+    legend.addRow({ meaning: '1. Start with "Issues Summary" sheet to focus on problems' });
+    legend.addRow({ meaning: '2. Fix Critical (red) issues first - remove honorifics' });
+    legend.addRow({ meaning: '3. Fix High (yellow) issues - correct spelling and remove lorem ipsum' });
+    legend.addRow({ meaning: '4. Address Medium (blue) - replace placeholders, shorten long text' });
+    legend.addRow({ meaning: '5. Review Low (orange) - fix inconsistencies' });
+    legend.addRow({ meaning: '6. Use "Full Content" sheet for complete context if needed' });
   }
-}
-
-module.exports = ColorCodedExcel;
+}module.exports = ColorCodedExcel;
