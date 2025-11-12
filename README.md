@@ -11,11 +11,20 @@ This tool:
    - Tone (formal, casual, friendly)
    - Purpose (what the text is meant to do)
    - UX patterns (design patterns used)
-3. **Generates** reports in CSV and JSON format with:
-   - Individual analysis for each text string
-   - Corpus-level pattern analysis
-   - UX recommendations
-   - Statistics and insights
+3. **Detects Issues** automatically:
+   - Honorifics (Mr., Mrs., Dr., etc.)
+   - Lorem ipsum and placeholder text
+   - Spelling errors
+   - Long button/navigation text (>3 words)
+   - Plural inconsistencies (app vs apps, task vs tasks)
+   - Capitalization issues
+4. **Generates** color-coded reports:
+   - **Excel workbook** with 3 sheets:
+     - ⚠️ Issues Summary (problems only, sorted by severity)
+     - 📋 Full Content (all text with complete analysis)
+     - 📖 Color Legend (severity guide and workflow)
+   - CSV and JSON formats for data processing
+   - Corpus-level pattern analysis and UX recommendations
 
 ## Prerequisites
 
@@ -102,11 +111,21 @@ The scraper will:
 1. Fetch the Figma file structure
 2. Extract all text content (only nodes with actual text)
 3. Analyze each string with Azure OpenAI
-4. Generate timestamped output files in `output/`
+4. Detect issues automatically (honorifics, long text, inconsistencies)
+5. Generate timestamped output files in `output/`
 
 ### Output Files
 
-Two files are created per run:
+Three files are created per run:
+
+**Color-Coded Excel** (`output/[FileName]_[Timestamp]_color_coded.xlsx`):
+- **Sheet 1: ⚠️ Issues Summary** - Only items with problems, sorted by severity
+  - 🔴 Critical (red): Honorifics that must be removed
+  - 🟡 High (yellow): Spelling errors, lorem ipsum
+  - 🔵 Medium (blue): Placeholder text, long button/navigation text
+  - 🟠 Low (orange): Capitalization and plural inconsistencies
+- **Sheet 2: 📋 Full Content** - All scraped text with complete AI analysis
+- **Sheet 3: 📖 Color Legend** - Severity guide and workflow instructions
 
 **CSV Report** (`output/[FileName]_[Timestamp]_content_library.csv`):
 ```csv
@@ -155,6 +174,15 @@ await new Promise(resolve => setTimeout(resolve, 100));
 
 ## Analyzing Results
 
+### Review Issues in Excel
+
+Open the color-coded Excel file and start with the **⚠️ Issues Summary** sheet:
+1. Fix 🔴 Critical issues first (honorifics)
+2. Address 🟡 High priority (spelling, lorem ipsum)
+3. Handle 🔵 Medium issues (placeholders, long text)
+4. Review 🟠 Low priority (inconsistencies)
+5. Use **📋 Full Content** sheet for complete context
+
 ### Search for Specific Terms
 
 ```bash
@@ -186,12 +214,16 @@ The JSON file includes:
 ```
 figma-content-scraper/
 ├── src/
-│   ├── figmaScraper.js      # Fetches and extracts text from Figma
-│   ├── contentAnalyzer.js   # AI analysis with Azure OpenAI
-│   ├── contentLibrary.js    # Generates CSV/JSON reports
-│   └── index.js             # Main orchestrator
-├── output/                   # Generated reports (timestamped)
-├── .env                      # Configuration (not committed)
+│   ├── figmaScraper.js          # Fetches and extracts text from Figma
+│   ├── contentAnalyzer.js       # AI analysis with Azure OpenAI
+│   ├── contentLibrary.js        # Generates CSV/JSON reports
+│   ├── colorCodedExcel.js       # Excel generation with issue detection
+│   ├── htmlScraper.js           # HTML content extraction (optional)
+│   ├── htmlUpdater.js           # Apply corrections to HTML (optional)
+│   ├── contentDesignerAgent.js  # AI Foundry agent integration (optional)
+│   └── index.js                 # Main orchestrator
+├── output/                       # Generated reports (timestamped)
+├── .env                          # Configuration (not committed)
 ├── .gitignore
 ├── package.json
 └── README.md
@@ -259,16 +291,51 @@ jobs:
           AZURE_OPENAI_API_KEY: ${{ secrets.AZURE_KEY }}
 ```
 
+## HTML Content Scraping (Optional)
+
+The feature branch also includes HTML scraping capabilities:
+
+### Scrape HTML Files
+
+```bash
+npm run scrape-html path/to/your/file.html
+```
+
+This extracts text from HTML elements (headings, paragraphs, buttons, links) and generates a CSV with corrections column.
+
+### Apply Corrections
+
+1. Edit the CSV file and add corrections in the "Corrected Content" column
+2. Apply changes back to HTML:
+
+```bash
+npm run apply-html path/to/corrections.csv path/to/file.html
+```
+
+The tool creates a backup before applying changes and validates all corrections.
+
 ## Features
 
 ✅ Extracts text-only content (no empty components)  
 ✅ AI-powered categorization and analysis  
+✅ **Automatic issue detection:**
+  - Honorifics (Mr., Mrs., Dr., etc.)
+  - Lorem ipsum and placeholder text (TODO, TBD)
+  - Spelling errors
+  - Long button/navigation text (>3 words)
+  - Plural inconsistencies (app/apps, task/tasks)
+  - Capitalization issues  
+✅ **Color-coded Excel with 3 sheets:**
+  - Issues Summary (sorted by severity)
+  - Full Content (complete analysis)
+  - Color Legend (workflow guide)  
 ✅ Timestamped outputs (never overwrites previous runs)  
 ✅ Custom grounding instructions for domain-specific analysis  
-✅ CSV export for spreadsheet analysis  
-✅ JSON export with pattern detection  
+✅ CSV and JSON export for data processing  
 ✅ Rate limiting for API protection  
 ✅ Progress tracking during analysis  
+✅ **HTML scraping and correction workflow** (optional)  
+✅ **AI Foundry agent integration** (optional)  
 
 ## Cost Considerations
 
