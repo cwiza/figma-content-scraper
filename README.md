@@ -61,7 +61,15 @@ npm install
 
 ### 4. Configure Environment Variables
 
-Create a `.env` file in the project root:
+**🔒 SECURITY IMPORTANT:** Never commit your `.env` file!
+
+Copy the template and add your credentials:
+
+```bash
+cp .env.example .env
+```
+
+Then edit `.env` with your actual values:
 
 ```bash
 # Figma API
@@ -79,6 +87,13 @@ FIGMA_FILE_KEY=your_default_file_key
 # AI Grounding Instructions (optional)
 AI_SYSTEM_PROMPT=You are analyzing UI content for a [Your Product] application. Focus on consistency with [Your Design System] principles.
 ```
+
+**✅ Security Best Practices:**
+- `.env` is already in `.gitignore` to prevent accidental commits
+- Use `.env.example` as a template (never contains real credentials)
+- Rotate tokens immediately if accidentally exposed
+- Enable GitHub Secret Scanning in repository settings
+- Never share `.env` file contents in issues or pull requests
 
 ### 5. Get Your Figma File Key
 
@@ -343,6 +358,62 @@ The tool creates a backup before applying changes and validates all corrections.
 - **Azure OpenAI**: Charged per token
   - ~500-1000 tokens per text string analyzed
   - 104 strings ≈ 50K-100K tokens ≈ $0.50-$1.00 (GPT-4o pricing)
+
+## 🔒 Security for Public Repositories
+
+This repository is designed to be **safe for public use**. Here's how we protect your credentials:
+
+### ✅ What's Protected
+
+1. **Environment Variables**
+   - All sensitive data (API keys, tokens) stored in `.env` file
+   - `.env` is in `.gitignore` and never committed to git
+   - `.env.example` template provided without real credentials
+
+2. **Secret Scanning**
+   - GitHub Secret Scanning automatically detects leaked credentials
+   - Enable in Settings → Code security and analysis → Secret scanning
+   - Enable Push Protection to block commits containing secrets
+
+3. **Output Files**
+   - Generated reports in `output/` folder may contain sensitive content
+   - Add to `.gitignore` if they contain confidential information
+   - Review files before committing
+
+### ⚠️ Important Security Practices
+
+**Before Making Public:**
+- ✅ Verify `.env` is in `.gitignore`
+- ✅ Check no secrets in commit history: `git log -p | grep -i "api_key\|token\|password"`
+- ✅ Enable GitHub Secret Scanning and Push Protection
+- ✅ Review all output files before committing
+
+**If You Accidentally Commit a Secret:**
+1. **Immediately rotate/revoke** the compromised credential
+2. Remove from git history:
+   ```bash
+   # Use BFG Repo-Cleaner or git filter-repo
+   git filter-repo --path .env --invert-paths
+   git push --force
+   ```
+3. Never reuse the exposed credential
+
+**Best Practices:**
+- Use separate dev/prod credentials
+- Rotate tokens regularly
+- Monitor Azure OpenAI usage for anomalies
+- Review Figma access token permissions
+- Never paste credentials in issues, PRs, or chat
+
+### 🛡️ Additional Protections
+
+The project includes:
+- `.gitignore` configured for sensitive files
+- Environment variable validation
+- No hardcoded credentials in source code
+- Secure credential storage documentation
+
+For questions about security, open an issue (without revealing credentials).
 
 ## Contributing
 
